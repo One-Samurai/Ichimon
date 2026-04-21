@@ -1,0 +1,44 @@
+%% MON Platform — Module Dependency Graph
+%% Generated: 2026-04-20
+
+graph TD
+    subgraph "Core Identity"
+        role_registry[role_registry.move<br/>Platform RBAC]
+        mon_gate[mon_gate.move<br/>Gate Management]
+        mon_pass[mon_pass.move<br/>Soulbound Pass]
+    end
+
+    subgraph "Engagement"
+        quest[quest.move<br/>Quest System]
+        badge[badge.move<br/>Badge & Achievements]
+    end
+
+    subgraph "AI & Content"
+        monban[monban.move<br/>AI Agent Identity]
+        seal_policy[seal_policy.move<br/>Tiered Access Control]
+    end
+
+    subgraph "Utilities"
+        events[events.move<br/>Event Definitions]
+    end
+
+    %% Dependencies (arrow = "depends on")
+    mon_gate -->|reads roles| role_registry
+    mon_pass -->|reads gate config| mon_gate
+    quest -->|reads roles| role_registry
+    quest -->|updates XP| mon_pass
+    quest -->|mints badge| badge
+    quest -->|reads gate| mon_gate
+    badge -->|attaches to| mon_pass
+    monban -->|completes| quest
+    monban -->|reads gate| mon_gate
+    seal_policy -->|reads rank| mon_pass
+    seal_policy -->|reads tier config| mon_gate
+
+    %% Events (all modules emit)
+    mon_gate -.->|emits| events
+    mon_pass -.->|emits| events
+    quest -.->|emits| events
+    badge -.->|emits| events
+    monban -.->|emits| events
+    role_registry -.->|emits| events

@@ -1,0 +1,78 @@
+%% MON Platform — Data Flow Diagram
+%% Generated: 2026-04-20
+
+sequenceDiagram
+    participant Fan as Fan (Browser)
+    participant UI as Next.js Frontend
+    participant ZK as zkLogin Service
+    participant Backend as Backend / Sponsor
+    participant Sui as Sui Blockchain
+    participant Seal as Seal Protocol
+    participant Walrus as Walrus Storage
+    participant Indexer as Custom Indexer
+    participant DB as PostgreSQL
+
+    %% === Fan Onboarding ===
+    Note over Fan, Sui: Fan Onboarding Flow
+
+    Fan->>UI: Click "Enter Gate"
+    UI->>ZK: OAuth login (Google/Apple)
+    ZK-->>UI: Ephemeral keypair + ZK proof
+    UI->>Backend: Request sponsored tx (join_gate)
+    Backend->>Sui: Sponsored tx: mon_gate::join_gate()
+    Sui-->>Sui: Mint MonPass (owned by fan)
+    Sui-->>Sui: Emit MonPassMintedEvent
+    Sui-->>Backend: Tx success
+    Backend-->>UI: MonPass ID
+    UI-->>Fan: "Welcome, 門徒!"
+
+    %% === Quest Completion ===
+    Note over Fan, DB: Quest Completion Flow
+
+    Fan->>UI: Complete quiz / scan QR
+    UI->>Backend: Submit quest answer + proof
+    Backend->>Backend: Validate answer, sign proof
+    Backend->>Sui: Sponsored tx: quest::complete_quest(sig)
+    Sui-->>Sui: Verify sig + role
+    Sui-->>Sui: add_xp() → auto rank check
+    Sui-->>Sui: mint_badge() if applicable
+    Sui-->>Sui: Emit QuestCompletedEvent, RankUpEvent
+    Sui-->>Backend: Tx success
+    Backend-->>UI: Updated XP, rank, badge
+    UI-->>Fan: "Level Up! New Badge earned!"
+
+    %% === Content Unlock ===
+    Note over Fan, Walrus: Content Gating Flow
+
+    Fan->>UI: Request gated video
+    UI->>Seal: Request decryption (MonPass ref)
+    Seal->>Sui: check_access(policy, gate, pass, tier)
+    Sui-->>Seal: Access approved (rank meets tier)
+    Seal-->>UI: Decryption key
+    UI->>Walrus: Fetch encrypted blob
+    Walrus-->>UI: Ciphertext
+    UI->>UI: Decrypt locally
+    UI-->>Fan: Play video
+
+    %% === Monban AI Interaction ===
+    Note over Fan, Sui: Monban AI Flow
+
+    Fan->>UI: Chat with Monban
+    UI->>Backend: Message to AI
+    Backend->>Backend: AI generates response
+    Backend->>Backend: If action triggered, sign with Monban key
+    Backend->>Sui: monban::monban_complete_quest(sig)
+    Sui-->>Sui: Verify Monban identity + sig
+    Sui-->>Sui: Grant badge / XP
+    Sui-->>Sui: Emit MonbanActionEvent
+    Sui-->>Backend: Tx success
+    Backend-->>UI: AI response + achievement notification
+    UI-->>Fan: "門番 grants you '師父認可' badge!"
+
+    %% === Indexer Pipeline ===
+    Note over Sui, DB: Indexer Pipeline
+
+    Sui->>Indexer: Stream checkpoints (events)
+    Indexer->>DB: Process & store (passes, quests, leaderboards)
+    UI->>DB: Query leaderboard / history (REST API)
+    DB-->>UI: Aggregated data
