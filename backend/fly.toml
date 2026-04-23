@@ -1,4 +1,4 @@
-app = "ichimon-api"
+app = "ichimon"
 primary_region = "nrt"
 
 [build]
