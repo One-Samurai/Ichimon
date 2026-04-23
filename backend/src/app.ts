@@ -4,10 +4,13 @@ import { AppError } from './errors.js'
 import { healthRoutes } from './routes/health.js'
 import { stationsRoutes } from './routes/stations.js'
 import { fighterRoutes } from './routes/fighter.js'
+import { qrRoutes } from './routes/qr.js'
+import { buildServices, type Services } from './config.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
     config: Env
+    services: Services
   }
 }
 
@@ -21,6 +24,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     disableRequestLogging: env.NODE_ENV === 'test',
   })
   app.decorate('config', env)
+  const services = await buildServices(env)
+  app.decorate('services', services)
 
   app.setErrorHandler((err: FastifyError, req, reply) => {
     if (err instanceof AppError) {
@@ -45,5 +50,6 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes)
   await app.register(stationsRoutes)
   await app.register(fighterRoutes)
+  await app.register(qrRoutes)
   return app
 }
