@@ -1,0 +1,10 @@
+{
+  "fighter_id": "takeru",
+  "name": "Takeru Segawa",
+  "profile": {
+    "bio": "Three-division K-1 world champion.",
+    "career_record": "43 W (22 KO) - 3 L",
+    "championships": ["K-1 Featherweight", "K-1 Super Featherweight", "K-1 Lightweight"],
+    "image_url": "https://placehold.co/600x800?text=Takeru"
+  }
+}

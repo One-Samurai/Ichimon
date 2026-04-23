@@ -1,0 +1,7 @@
+{
+  "moments": [
+    { "moment_id": "0xMOMENT_1_PLACEHOLDER", "title": "Takeru Crowns Champion 2026", "description": "Legendary KO at Ryogoku that sealed the title.", "video_url": "https://walrus.example/blob/abc123", "thumbnail_url": "https://placehold.co/400x225?text=Moment+1" },
+    { "moment_id": "0xMOMENT_2_PLACEHOLDER", "title": "Final Round Comeback", "description": "Down on the cards, came back with a spinning heel kick.", "video_url": "https://walrus.example/blob/def456", "thumbnail_url": "https://placehold.co/400x225?text=Moment+2" },
+    { "moment_id": "0xMOMENT_3_PLACEHOLDER", "title": "Walk of a Samurai", "description": "Pre-fight ring walk that stopped the arena.", "video_url": "https://walrus.example/blob/ghi789", "thumbnail_url": "https://placehold.co/400x225?text=Moment+3" }
+  ]
+}

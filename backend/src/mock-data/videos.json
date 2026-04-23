@@ -1,0 +1,7 @@
+{
+  "videos": [
+    { "id": "v1", "title": "Title Defense Highlight", "url": "https://walrus.example/blob/vid1", "thumbnail": "https://placehold.co/400x225?text=V1" },
+    { "id": "v2", "title": "Training Camp Vlog", "url": "https://walrus.example/blob/vid2", "thumbnail": "https://placehold.co/400x225?text=V2" },
+    { "id": "v3", "title": "Interview: Road to 2026", "url": "https://walrus.example/blob/vid3", "thumbnail": "https://placehold.co/400x225?text=V3" }
+  ]
+}

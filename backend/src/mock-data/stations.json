@@ -1,0 +1,32 @@
+{
+  "stations": [
+    {
+      "station_id": "st-2026-tokyo",
+      "event_name": "K-1 WORLD GP 2026 Tokyo",
+      "event_date": "2026-05-04T10:00:00.000Z",
+      "venue": "Ryogoku Kokugikan, Tokyo",
+      "hostesses": [
+        { "id": "h-aoi", "name": "Aoi", "avatar_url": "https://placehold.co/200x200?text=Aoi", "bio": "Round girl at Tokyo event" },
+        { "id": "h-rin", "name": "Rin", "avatar_url": "https://placehold.co/200x200?text=Rin", "bio": "Welcome desk host" }
+      ]
+    },
+    {
+      "station_id": "st-2026-osaka",
+      "event_name": "K-1 WORLD GP 2026 Osaka",
+      "event_date": "2026-07-20T10:00:00.000Z",
+      "venue": "Osaka-jo Hall",
+      "hostesses": [
+        { "id": "h-mei", "name": "Mei", "avatar_url": "https://placehold.co/200x200?text=Mei", "bio": "Event MC" }
+      ]
+    },
+    {
+      "station_id": "st-2026-nagoya",
+      "event_name": "K-1 WORLD GP 2026 Nagoya",
+      "event_date": "2026-09-12T10:00:00.000Z",
+      "venue": "Nippon Gaishi Hall",
+      "hostesses": [
+        { "id": "h-saki", "name": "Saki", "avatar_url": "https://placehold.co/200x200?text=Saki", "bio": "Regional host" }
+      ]
+    }
+  ]
+}
