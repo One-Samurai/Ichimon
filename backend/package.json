@@ -14,7 +14,7 @@
     "test:monkey": "vitest run test/monkey",
     "lint": "tsc --noEmit",
     "gen:qr-key": "tsx scripts/generate-qr-key.ts",
-    "gen:bcs": "npx mysten-codegen --package 0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61 --network testnet --out src/contracts"
+    "gen:bcs": "npx mysten-codegen --package 0xeea4ccd93c56c0bd785ed6b98edc500f7d49ec7a499a215db9cdf81495dd51ee --network testnet --out src/contracts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
