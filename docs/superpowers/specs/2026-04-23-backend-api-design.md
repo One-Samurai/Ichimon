@@ -15,6 +15,13 @@ the frontend (zkLogin) signs and submits `record_check_in` etc.
 Testnet already deployed:
 - `PKG_ID = 0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61`
 - `MINT_REGISTRY_ID = 0x1ad98a64f0066c7656e6d439f630e50dd268cb0c9904a77aefee00633b19f6d3`
+- `MINT_REGISTRY_INITIAL_SHARED_VERSION = 828957603` (required by frontend for PTB `sharedObjectRef`)
+
+### Responsibility Split (SUI Best Practice)
+- **Backend**: off-chain validation (QR ed25519), metadata aggregation, on-chain **read** cache. NEVER signs or submits txs.
+- **Frontend (zkLogin)**: all on-chain **writes** (`mint_fan_card`, `record_check_in`, `vote_moment`, `propose_moment`, `mint_guardian_badge`). Owned-object `&mut self` functions CANNOT be delegated to backend — zkLogin is mandatory.
+- **No sponsored tx** in MVP. Fans pay gas from zkLogin-derived accounts.
+- **Backend never returns object `version` / `digest`** to frontend — always stale. Frontend queries latest before building PTB.
 
 ## 1. Project Structure
 
@@ -222,23 +229,48 @@ const grpc = new SuiGrpcClient({
 })
 ```
 
-GraphQL (`SuiGraphQLClient` from `@mysten/sui/graphql`) reserved for advanced event/tx filter queries if needed.
+**GraphQL intentionally excluded from MVP.** gRPC and GraphQL are parallel access paths, not primary/failover. GraphQL is for filtered queries (events by type, tx by sender). MVP has no such need — add later if indexer use cases appear.
 
 ### 4.2 Reads
 
-| API Field | Service | Method |
-|---|---|---|
-| Moment object (status, vote_count) | `ledgerService` | `getObject({ objectId, readMask: { paths: ['*'] }})` |
-| `guardians` Table dynamic fields | `stateService` | `listDynamicFields({ parent: table_id })` |
-| Batch dynamic field values | `ledgerService` | `batchGetObjects` |
-| MintRegistry size | `ledgerService` | `getObject(MINT_REGISTRY_ID)` → `minted.size` |
+| API Field | Strategy |
+|---|---|
+| Moment object (status, vote_count, total_guardians, total_points, preservation_until) | `ledgerService.getObject({ objectId, readMask: { paths: ['*'] }})` → BCS decode `MemorialMoment` plain fields |
+| `top_guardians` (rank ≤ 10) | **Two-stage + pagination** — see §4.2.1 |
+| `MintRegistry` size (for `total_fans`) | `ledgerService.getObject(MINT_REGISTRY_ID)` → read `minted.size: u64` directly. **DO NOT** `listDynamicFields` on the Table — size field is exact entry count |
+| Static metadata (fighter profile, videos, station info) | Read from `src/mock-data/*.json`. Never chain |
+
+### 4.2.1 Reading `guardians` Table (dynamic fields)
+
+`MemorialMoment.guardians: Table<ID, GuardianEntry>` — the Table itself is a sub-object. Accessing entries needs two indirections:
+
+```
+1. momentObj = ledgerService.getObject(moment_id)
+2. tableId   = momentObj.contents.guardians.id.bytes       // Table's own UID
+3. Paginated loop:
+     cursor = null
+     do {
+       page = stateService.listDynamicFields({ parent: tableId, cursor, limit: 50 })
+       fieldIds.push(...page.dynamicFields.map(d => d.fieldId))
+       cursor = page.cursor
+     } while (page.hasNextPage)
+4. ledgerService.batchGetObjects(fieldIds)
+   → each returns a DF wrapper; contents.value = GuardianEntry (BCS)
+5. Sort by rank, take top 10
+```
+
+**Critical**: `listDynamicFields` returns `{ fieldId, name, type }` — NOT the value. Must `batchGetObjects(fieldIds)` in a second step to get `GuardianEntry` bytes. Spec'd here to prevent a common pitfall.
+
+**Cache**: the final sorted top-10 array is cached per-moment at TTL 10s. Pagination traversal + batch fetch happens only on cache miss.
 
 ### 4.3 BCS Decoding
 Use `@mysten/codegen` to generate BCS struct types from Move ABI:
 ```
 npx mysten-codegen --package 0x267e74... --out src/contracts
 ```
-Then `FanSBT.parse(obj.contents.value)` for type-safe access. Shared codegen output with frontend possible.
+Then `FanSBT.parse(obj.contents.value)` / `GuardianEntry.parse(...)` for type-safe access. Shared codegen output with frontend possible.
+
+**Limitation**: codegen only emits plain-struct BCS parsers. Collection fields (`Table`, `Bag`, `ObjectTable`) parse as their wrapper `{ id: UID, size: u64 }` — entries must be read via dynamic-field calls in §4.2.1. Do NOT expect `MemorialMoment.parse()` to return guardians content.
 
 ### 4.4 Performance / Reliability
 - `node-cache` in-memory, TTL 10s on moment reads
@@ -249,11 +281,26 @@ Then `FanSBT.parse(obj.contents.value)` for type-safe access. Shared codegen out
 
 ### 4.5 Env
 ```
-SUI_GRPC_URL     = "https://fullnode.testnet.sui.io:443"
-SUI_GRAPHQL_URL  = "https://sui-testnet.mystenlabs.com/graphql"  # optional
-PKG_ID           = "0x267e..."
-MINT_REGISTRY_ID = "0x1ad9..."
+SUI_GRPC_URL                         = "https://fullnode.testnet.sui.io:443"
+PKG_ID                               = "0x267e..."
+MINT_REGISTRY_ID                     = "0x1ad9..."
+MINT_REGISTRY_INITIAL_SHARED_VERSION = "828957603"   # REQUIRED — returned to frontend via /api/config for PTB sharedObjectRef
 ```
+
+### 4.6 `/api/config` endpoint (new, minor addition)
+Returns on-chain IDs + initialSharedVersion to frontend so Kenny doesn't hardcode:
+```ts
+GET /api/config
+Response: {
+  network: "testnet",
+  pkg_id: string,
+  mint_registry: {
+    object_id: string,
+    initial_shared_version: string   // stringified u64
+  }
+}
+```
+Cached indefinitely (these are deployment-time constants). Frontend fetches once on app boot.
 
 ## 5. Error Handling & Observability
 
@@ -301,9 +348,9 @@ LOG_LEVEL: 'debug'|'info'|'warn'|'error' = 'info'
 DATA_SOURCE: 'chain' | 'mock' = 'chain'
 
 SUI_GRPC_URL: url = 'https://fullnode.testnet.sui.io:443'
-SUI_GRAPHQL_URL: url (optional)
 PKG_ID: string (required)
 MINT_REGISTRY_ID: string (required)
+MINT_REGISTRY_INITIAL_SHARED_VERSION: string (required, stringified u64)
 
 QR_KEY_CURRENT: string (required, format "v<N>:<base64>")
 QR_KEY_PREVIOUS: string (optional)
@@ -327,7 +374,8 @@ ALLOWED_ORIGINS: string (required, comma-separated)
 ```bash
 fly secrets set QR_KEY_CURRENT="v1:..." UPSTASH_REDIS_REST_URL="..." \
   UPSTASH_REDIS_REST_TOKEN="..." ISSUER_TOKENS="demo-1,demo-2" \
-  PKG_ID="0x267e..." MINT_REGISTRY_ID="0x1ad9..."
+  PKG_ID="0x267e..." MINT_REGISTRY_ID="0x1ad9..." \
+  MINT_REGISTRY_INITIAL_SHARED_VERSION="828957603"
 
 # Rotation
 fly secrets set QR_KEY_PREVIOUS="v1:old" QR_KEY_CURRENT="v2:new"
