@@ -1,0 +1,77 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://fullnode.testnet.sui.io:443",
+  "packageId": "0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61",
+  "modules": {
+    "fanSbt": "fan_sbt",
+    "memorialHall": "memorial_hall",
+    "events": "events"
+  },
+  "sharedObjects": {
+    "mintRegistry": {
+      "objectId": "0x1ad98a64f0066c7656e6d439f630e50dd268cb0c9904a77aefee00633b19f6d3",
+      "initialSharedVersion": 828957603,
+      "mutable": true,
+      "type": "0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61::fan_sbt::MintRegistry"
+    },
+    "clock": {
+      "objectId": "0x6",
+      "initialSharedVersion": 1,
+      "mutable": false,
+      "note": "System Clock, used by memorial_hall::vote_moment / mint_guardian_badge / finalize_season"
+    }
+  },
+  "ownedObjects": {
+    "adminCap": {
+      "objectId": "0x2415479fea03566732cd7894f27a54501c97665f8414b6326373f134ef07d8cb",
+      "owner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+      "type": "0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61::fan_sbt::AdminCap",
+      "note": "Lv.2→Lv.3 official certify gate. Transfer to multisig before mainnet."
+    },
+    "upgradeCap": {
+      "objectId": "0x0b1413b8b10043b1464f2a8a0e4c33fbeae4713eaad630da547677a5ec334479",
+      "owner": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+      "note": "Package upgrade authority. Transfer to multisig before mainnet."
+    }
+  },
+  "publisher": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+  "deployTx": "J1s5Ftr51zuHGP18P92HuD3Utsh7ToCuSt5UdrhvwkSj",
+  "deployedAt": "2026-04-23",
+  "explorer": {
+    "package": "https://testnet.suivision.xyz/package/0x267e74605140e3d467c740be1a7d5cb43814b1776d79fd517ece9ef2ded1dd61",
+    "tx": "https://testnet.suivision.xyz/txblock/J1s5Ftr51zuHGP18P92HuD3Utsh7ToCuSt5UdrhvwkSj"
+  },
+  "entryFunctions": {
+    "mintFanCard": {
+      "target": "fan_sbt::mint_fan_card",
+      "args": ["&mut MintRegistry", "fighter_id: ID", "ctx"],
+      "note": "Lv.1 mint, idempotent via MintRegistry"
+    },
+    "recordCheckIn": {
+      "target": "fan_sbt::record_check_in",
+      "args": ["&mut FanSBT", "ctx"],
+      "note": "Auto upgrade to Lv.2 when check_in_count>=3 AND content_count>=1"
+    },
+    "officialCertify": {
+      "target": "fan_sbt::official_certify",
+      "args": ["&AdminCap", "&mut FanSBT", "ctx"],
+      "note": "Lv.2 → Lv.3, admin-gated"
+    },
+    "proposeMoment": {
+      "target": "memorial_hall::propose_moment",
+      "args": ["&FanSBT (proposer, level>=2)", "title, description, media_url", "ctx"]
+    },
+    "voteMoment": {
+      "target": "memorial_hall::vote_moment",
+      "args": ["&mut MemorialMoment", "&mut FanSBT", "points: u64", "&Clock", "ctx"]
+    },
+    "mintGuardianBadge": {
+      "target": "memorial_hall::mint_guardian_badge",
+      "args": ["&MemorialMoment", "&mut FanSBT", "&Clock", "ctx"]
+    },
+    "finalizeSeason": {
+      "target": "memorial_hall::finalize_season",
+      "args": ["&AdminCap", "&mut MemorialMoment", "&Clock", "ctx"]
+    }
+  }
+}

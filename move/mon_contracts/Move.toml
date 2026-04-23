@@ -1,0 +1,15 @@
+[package]
+name = "mon_contracts"
+edition = "2024.beta"
+description = "MON Fan Dojo — Sui Move contracts: FanSBT + MemorialHall + Events"
+license = "MIT"
+
+[dependencies]
+# Sui / MoveStdlib / Bridge / DeepBook / SuiSystem auto-injected by CLI.
+
+[addresses]
+mon_contracts = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
