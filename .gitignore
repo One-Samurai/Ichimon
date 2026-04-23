@@ -1,7 +1,8 @@
-tasks/progress.md
-tasks/lessons.md
+tasks/
 
 # env files (may contain secrets like QR signer keys)
 .env
 .env.*
 !.env.example
+
+qr-key.txt
