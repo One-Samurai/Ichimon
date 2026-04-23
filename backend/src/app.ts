@@ -1,4 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyError } from 'fastify'
+import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import { parseEnv, type Env } from './env.js'
 import { AppError } from './errors.js'
 import { healthRoutes } from './routes/health.js'
@@ -28,6 +32,16 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('config', env)
   const services = await buildServices(env)
   app.decorate('services', services)
+
+  await app.register(cors, { origin: env.ALLOWED_ORIGINS, credentials: false })
+  await app.register(rateLimit, { global: false, max: 1000, timeWindow: '1 minute' })
+  await app.register(swagger, {
+    openapi: {
+      info: { title: 'Ichimon Backend', version: '0.1.0' },
+      servers: [{ url: '/' }],
+    },
+  })
+  await app.register(swaggerUi, { routePrefix: '/docs' })
 
   app.setErrorHandler((err: FastifyError, req, reply) => {
     if (err instanceof AppError) {

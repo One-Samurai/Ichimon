@@ -8,7 +8,7 @@ const STATUS_MAP = { candidate: 0, finalized: 1, expired: 2 } as const
 export async function momentsRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { status?: 'candidate' | 'finalized' | 'expired' } }>(
     '/api/moments',
-    { schema: { querystring: MomentStatusQuery, response: { 200: MomentsResponse } } },
+    { schema: { querystring: MomentStatusQuery, response: { 200: MomentsResponse }, tags: ['read'] } },
     async (req) => {
       const meta = loadMock().moments
       const states = await Promise.all(meta.map(async (m) => {

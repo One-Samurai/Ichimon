@@ -8,9 +8,13 @@ export async function healthRoutes(app: FastifyInstance) {
     version: process.env.npm_package_version ?? '0.0.0',
   }))
 
-  app.get('/ready', async (_req, _reply) => {
-    // TODO(Task 8/6): ping Upstash + gRPC. In test mode, always 200.
-    if (process.env.NODE_ENV === 'test') return { ok: true }
-    return { ok: true }
+  app.get('/ready', async (_req, reply) => {
+    const [nonce, sui] = await Promise.all([
+      app.services.nonceStore.ping().catch(() => false),
+      app.services.sui.ping().catch(() => false),
+    ])
+    const ok = nonce && sui
+    if (!ok) return reply.status(503).send({ ok: false, nonce, sui })
+    return { ok: true, nonce, sui }
   })
 }

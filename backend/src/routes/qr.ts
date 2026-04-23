@@ -5,7 +5,10 @@ import { Errors } from '../errors.js'
 export async function qrRoutes(app: FastifyInstance) {
   app.post<{ Body: { station_id: string; fighter_id: string; issuer_token: string } }>(
     '/api/checkin/qr/issue',
-    { schema: { body: QrIssueRequest, response: { 200: QrIssueResponse } } },
+    {
+      schema: { body: QrIssueRequest, response: { 200: QrIssueResponse }, tags: ['qr'] },
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    },
     async (req) => {
       const { station_id, fighter_id, issuer_token } = req.body
       if (!app.services.issuerTokens.has(issuer_token)) throw Errors.unauthorized()
@@ -17,7 +20,10 @@ export async function qrRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { qr_payload: string } }>(
     '/api/checkin/qr/verify',
-    { schema: { body: QrVerifyRequest, response: { 200: QrVerifyResponse } } },
+    {
+      schema: { body: QrVerifyRequest, response: { 200: QrVerifyResponse }, tags: ['qr'] },
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
     async (req) => {
       const { payload } = await app.services.signer.verify(req.body.qr_payload)
       const fresh = await app.services.nonceStore.claim(payload.nonce, app.config.QR_EXPIRY_MS)
