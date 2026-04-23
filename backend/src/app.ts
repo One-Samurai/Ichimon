@@ -28,6 +28,15 @@ export async function buildApp(): Promise<FastifyInstance> {
       redact: ['req.headers.authorization', 'req.body.issuer_token'],
     },
     disableRequestLogging: env.NODE_ENV === 'test',
+    bodyLimit: 32 * 1024,
+    ajv: {
+      customOptions: {
+        coerceTypes: false,
+        removeAdditional: false,
+        useDefaults: true,
+        allErrors: false,
+      },
+    },
   })
   app.decorate('config', env)
   const services = await buildServices(env)
