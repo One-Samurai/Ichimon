@@ -1,4 +1,5 @@
 tasks/
+docs/superpowers/
 
 # env files (may contain secrets like QR signer keys)
 .env
