@@ -10,12 +10,14 @@ export async function fighterRoutes(app: FastifyInstance) {
     async (req) => {
       if (req.params.id !== 'takeru') throw Errors.notFound('fighter_id')
       const m = loadMock()
+      const total_fans = await app.services.sui.getMintRegistrySize().catch(() => undefined)
       return {
         fighter_id: m.fighter.fighter_id,
         name: m.fighter.name,
         profile: m.fighter.profile,
         events: m.stations,
         videos: m.videos,
+        total_fans,
       }
     },
   )

@@ -1,11 +1,13 @@
 import type { Env } from './env.js'
 import { createSigner, type Signer } from './services/qr-signer.js'
 import { createMemoryNonceStore, createUpstashNonceStore, type NonceStore } from './services/nonce-store.js'
+import { createSuiService, createMockSuiService, type SuiService } from './services/sui.js'
 
 export type Services = {
   signer: Signer
   nonceStore: NonceStore
   issuerTokens: Set<string>
+  sui: SuiService
 }
 
 export async function buildServices(env: Env): Promise<Services> {
@@ -14,9 +16,13 @@ export async function buildServices(env: Env): Promise<Services> {
   const nonceStore = useUpstash
     ? createUpstashNonceStore(env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN)
     : createMemoryNonceStore()
+  const sui = env.DATA_SOURCE === 'chain' && env.NODE_ENV !== 'test'
+    ? createSuiService(env)
+    : createMockSuiService()
   return {
     signer,
     nonceStore,
     issuerTokens: new Set(env.ISSUER_TOKENS),
+    sui,
   }
 }
