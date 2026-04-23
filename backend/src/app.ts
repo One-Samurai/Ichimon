@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { parseEnv, type Env } from './env.js'
 import { AppError } from './errors.js'
 import { healthRoutes } from './routes/health.js'
+import { stationsRoutes } from './routes/stations.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -41,5 +42,6 @@ export async function buildApp(): Promise<FastifyInstance> {
   })
 
   await app.register(healthRoutes)
+  await app.register(stationsRoutes)
   return app
 }
