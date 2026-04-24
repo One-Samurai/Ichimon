@@ -3,7 +3,7 @@
 > 目標讀者：Kenny（前端）
 > Backend：`https://ichimon.fly.dev`
 > Network：Sui **testnet**
-> 最後更新：2026-04-24（v2 upgrade：propose_moment 拒絕空 title/blob_id，`EEmptyMetadata=106`）
+> 最後更新：2026-04-24（v2 upgrade + §9 擴充：前端所需 backend 資訊、CORS 驗證）
 
 ---
 
@@ -296,22 +296,73 @@ const fanSbt = owned.data[0]
 
 ---
 
-## 9. CORS & 環境變數
+## 9. 前端需要 Backend 的什麼資訊？
 
-Backend `ALLOWED_ORIGINS` 目前設 `http://localhost:5173`（Vite default）。
+### 9.1 必要資訊清單
 
-Kenny 實際部署 URL 敲定後告訴我，我更新 Fly secret：
+| 項目 | 哪裡拿 | 用途 |
+|---|---|---|
+| Backend base URL | hardcode 在前端 `.env`（`https://ichimon.fly.dev`） | 所有 API call 的 prefix |
+| `pkg_id` / `mint_registry` | 啟動時呼叫 `/api/config` 動態拿 | PTB target + sharedObjectRef |
+| `issuer_token` | 向 Ramon 索取，存 Fly secret → 同步到站姐端前端 env | 站姐端 `POST /qr/issue` 的 `Authorization` |
+| API 型別 | `npx openapi-typescript https://ichimon.fly.dev/docs/json -o src/types/api.d.ts` | request/response type-safe |
+| Swagger UI | <https://ichimon.fly.dev/docs> | 互動測試 API |
+
+**為什麼 `pkg_id` 走 API 不 hardcode**：package 升級（v2→v3）時 backend 只改 Fly secret `PKG_ID`，前端不用 redeploy。
+
+### 9.2 前端 `.env`（完整）
+
 ```bash
-fly secrets set ALLOWED_ORIGINS=http://localhost:5173,https://ichimon-frontend.vercel.app -a ichimon
+# 一般用戶端
+VITE_API_BASE_URL=https://ichimon.fly.dev
+VITE_SUI_NETWORK=testnet
+VITE_SUI_FULLNODE_GRPC=https://fullnode.testnet.sui.io:443
+
+# zkLogin（Google OAuth）
+VITE_GOOGLE_CLIENT_ID=<Google Cloud Console 拿>
+VITE_ZKLOGIN_PROVER_URL=https://prover-dev.mystenlabs.com/v1
+
+# 站姐端額外（獨立頁面/build，別混進用戶端 bundle）
+VITE_ISSUER_TOKEN=<向 Ramon 索取，與 Fly secret ISSUER_TOKEN 同一把>
 ```
 
-前端 `.env`：
+### 9.3 前端**不需要**的（常見誤解）
+
+- ❌ QR 簽章 public key — 前端完全不驗 QR，掃到就丟 `/api/checkin/qr/verify`，backend 驗
+- ❌ `PKG_ID` / `MINT_REGISTRY_ID` hardcode — 走 `/api/config` 動態拿
+- ❌ Backend private key / Upstash token — 永遠只存 Fly secret，絕不進前端 bundle
+
+### 9.4 CORS 設定（已就緒）
+
+Backend `ALLOWED_ORIGINS` 目前設：
 ```
-VITE_API_BASE=https://ichimon.fly.dev
-VITE_SUI_NETWORK=testnet
-VITE_SUI_GRPC_URL=https://fullnode.testnet.sui.io:443
-VITE_ISSUER_TOKEN=<問我拿，站姐端才需要>
+https://ichimon-frontend.vercel.app,http://localhost:5173
 ```
+
+如果前端部署 URL 不是 `ichimon-frontend.vercel.app`，通知 Ramon 更新：
+```bash
+fly secrets set ALLOWED_ORIGINS=https://<your-url>,http://localhost:5173 -a ichimon
+# Fly 會自動 rolling restart，不用手動 redeploy
+```
+
+**驗證 CORS 生效**（Kenny 上線前先跑）：
+```bash
+# 白名單內 → 應該回 access-control-allow-origin header
+curl -i -X OPTIONS https://ichimon.fly.dev/api/config \
+  -H "Origin: https://ichimon-frontend.vercel.app" \
+  -H "Access-Control-Request-Method: GET"
+
+# 非白名單 → 不應該回 access-control-allow-origin
+curl -i -X OPTIONS https://ichimon.fly.dev/api/config \
+  -H "Origin: https://evil.example.com" \
+  -H "Access-Control-Request-Method: GET"
+```
+
+### 9.5 站姐端 `issuer_token` 處理
+
+Hackathon MVP 做法：站姐端獨立 build，`VITE_ISSUER_TOKEN` 進 env。Token 可能被有心人從 bundle 挖出，但 hackathon 可接受。
+
+⚠️ Production 前改成：站姐登入 → backend 發短期 JWT → 前端用 JWT 打 `/qr/issue`。Token 一洩漏全員淪陷的風險要消除。
 
 ---
 
